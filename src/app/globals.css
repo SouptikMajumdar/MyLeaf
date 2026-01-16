@@ -26,22 +26,26 @@ body {
 }
 
 /* Ensure proper sizing for full-height layouts */
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
 
-#__next {
+/* Next.js App Router root */
+html body>div:first-child {
   height: 100%;
 }
 
-/* CodeMirror editor fixes */
+/* CodeMirror editor fixes - ensure scrolling works */
 .cm-editor {
   height: 100% !important;
+  max-height: 100% !important;
 }
 
 .cm-editor .cm-scroller {
   overflow: auto !important;
+  max-height: 100% !important;
 }
 
 /* Custom scrollbar for dark theme */
