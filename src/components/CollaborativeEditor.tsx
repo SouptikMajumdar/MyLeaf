@@ -147,11 +147,18 @@ export function CollaborativeEditor({
             EditorView.theme({
                 "&": {
                     height: "100%",
+                    maxHeight: "100%",
                     fontSize: "14px",
                     backgroundColor: "transparent",
+                    position: "relative",
                 },
                 ".cm-scroller": {
                     overflow: "auto",
+                    position: "absolute",
+                    top: "0",
+                    left: "0",
+                    right: "0",
+                    bottom: "0",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                 },
                 ".cm-gutters": {
