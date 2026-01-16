@@ -15,9 +15,9 @@ RUN npm run build
 # Stage 2: Runtime
 FROM node:20-alpine AS runtime
 
-# Install tectonic from pre-built binary
+# Install tectonic from pre-built binary (ARM)
 RUN apk add --no-cache curl bash \
-    && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz" \
+    && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-aarch64-unknown-linux-musl.tar.gz" \
     | tar -xzf - -C /usr/local/bin \
     && chmod +x /usr/local/bin/tectonic \
     && tectonic --version
