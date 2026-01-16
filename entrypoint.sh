@@ -51,6 +51,13 @@ if [ -z "$DATABASE_URL" ]; then
     warn "Demo mode only - user data will not be saved"
 else
     log "Database connection configured"
+    log "Running database migrations..."
+    if npx prisma db push --skip-generate 2>&1; then
+        log "Database migrations complete"
+    else
+        error "Database migration failed - check your DATABASE_URL"
+        error "Make sure the database is accessible from this server"
+    fi
 fi
 
 # Check for tectonic
