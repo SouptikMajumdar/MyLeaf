@@ -85,6 +85,13 @@ export function ConferenceTemplatePanel({
 
   const handleApplyTemplate = useCallback(
     async (template: Template) => {
+      // Confirm with user that current project will be replaced
+      const confirmed = window.confirm(
+        `This will replace your current project with the "${template.name}" template.\n\nAll existing files will be deleted.\n\nContinue?`
+      );
+
+      if (!confirmed) return;
+
       setLoadingTemplateId(template.id);
       setError("");
       setLastFetchResult(null);

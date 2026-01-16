@@ -146,47 +146,39 @@ export default function Home() {
     [activeFileId],
   );
 
-  // Apply template: adds all template files to project
+  // Apply template: replaces all project files with template files
   const handleApplyTemplate = useCallback(
     (content: string, files?: { filename: string; content: string }[]) => {
       setProjectRoot((prev) => {
         const copy = JSON.parse(JSON.stringify(prev)) as FileNode;
 
-        // If we have multiple files, add them all
+        // Clear all existing files first
+        copy.children = [];
+
+        // If we have multiple files from the template, add them all
         if (files && files.length > 0) {
           for (const file of files) {
-            // Check if file already exists in root
-            const existing = copy.children?.find((f) => f.name === file.filename);
-
-            if (existing) {
-              // Update existing file
-              updateFileContent(copy, existing.id, file.content);
-            } else {
-              // Create new file
-              const newFile = createFile(file.filename, copy.id, file.content);
-              if (!copy.children) copy.children = [];
-              copy.children.push(newFile);
-            }
+            const newFile = createFile(file.filename, copy.id, file.content);
+            copy.children.push(newFile);
           }
 
           // Set main.tex as active if it exists
-          const mainTex = copy.children?.find((f) => f.name === "main.tex");
+          const mainTex = copy.children.find((f) => f.name === "main.tex");
           if (mainTex) {
             setTimeout(() => setActiveFileId(mainTex.id), 0);
+          } else if (copy.children.length > 0) {
+            // Otherwise select the first file
+            setTimeout(() => setActiveFileId(copy.children![0].id), 0);
           }
         } else {
-          // Fallback: just update/create main.tex with the content
-          const mainTex = copy.children?.find((f) => f.name === "main.tex");
-          if (mainTex) {
-            updateFileContent(copy, mainTex.id, content);
-            setTimeout(() => setActiveFileId(mainTex.id), 0);
-          } else {
-            const newFile = createFile("main.tex", copy.id, content);
-            if (!copy.children) copy.children = [];
-            copy.children.push(newFile);
-            setTimeout(() => setActiveFileId(newFile.id), 0);
-          }
+          // Fallback: just create main.tex with the content
+          const newFile = createFile("main.tex", copy.id, content);
+          copy.children.push(newFile);
+          setTimeout(() => setActiveFileId(newFile.id), 0);
         }
+
+        // Clear target line to reset editor state
+        setTargetLine(undefined);
 
         return copy;
       });
