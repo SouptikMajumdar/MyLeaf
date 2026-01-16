@@ -17,11 +17,10 @@ FROM node:20-alpine AS runtime
 
 # Install tectonic from pre-built binary
 RUN apk add --no-cache curl bash \
-    && curl -fsSL "https://github.com/AmerMathSoc/TeXBook/releases/download/v2024.01/tectonic-x86_64-linux-musl.tar.gz" \
-    | tar -xzf - -C /usr/local/bin 2>/dev/null || \
-    curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz" \
+    && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz" \
     | tar -xzf - -C /usr/local/bin \
-    && chmod +x /usr/local/bin/tectonic || true
+    && chmod +x /usr/local/bin/tectonic \
+    && tectonic --version
 
 WORKDIR /app
 
