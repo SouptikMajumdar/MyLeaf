@@ -51,6 +51,8 @@ export interface CollaborativeEditorProps {
     serverUrl?: string;
     /** User name for presence */
     userName?: string;
+    /** Line number to scroll to and highlight (changes trigger scroll) */
+    goToLine?: number;
 }
 
 export function CollaborativeEditor({
@@ -65,6 +67,7 @@ export function CollaborativeEditor({
             : `ws://${window.location.hostname}:1234`
         : "ws://localhost:1234",
     userName = "Anonymous",
+    goToLine,
 }: CollaborativeEditorProps) {
     const editorRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
@@ -93,6 +96,28 @@ export function CollaborativeEditor({
             loadCollabModules().then(() => setCollabReady(true));
         }
     }, [enableCollaboration, collabReady]);
+
+    // Handle goToLine prop - scroll to and highlight line
+    useEffect(() => {
+        if (!goToLine || !viewRef.current) return;
+
+        const view = viewRef.current;
+        const doc = view.state.doc;
+
+        // Clamp line number to valid range
+        const lineNumber = Math.max(1, Math.min(goToLine, doc.lines));
+        const line = doc.line(lineNumber);
+
+        // Scroll to line and select it
+        view.dispatch({
+            selection: { anchor: line.from, head: line.to },
+            scrollIntoView: true,
+            effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+        });
+
+        // Focus the editor
+        view.focus();
+    }, [goToLine]);
 
     // Create editor
     useEffect(() => {

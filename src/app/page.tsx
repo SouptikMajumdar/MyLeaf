@@ -75,6 +75,7 @@ export default function Home() {
   const [synctexData, setSynctexData] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [compileError, setCompileError] = useState<string | null>(null);
+  const [targetLine, setTargetLine] = useState<number | undefined>(undefined);
 
   // Update file content
   const setTexContent = useCallback(
@@ -304,10 +305,9 @@ export default function Home() {
     const targetFile = findFileByName(projectRoot, filename);
     if (targetFile) {
       setActiveFileId(targetFile.id);
-      // TODO: In the future, scroll the editor to the specific line
-      console.log(`Navigating to ${filename}:${line}`);
-    } else {
-      console.warn(`File not found: ${filename}`);
+      // Set target line to trigger scroll in editor
+      // Use a slight delay to ensure file switch completes first
+      setTimeout(() => setTargetLine(line), 50);
     }
   }, [projectRoot]);
 
@@ -453,6 +453,7 @@ export default function Home() {
                       initialContent={texContent}
                       onChange={setTexContent}
                       enableCollaboration={isCollabEnabled}
+                      goToLine={targetLine}
                       className="h-full"
                     />
                   ) : (
