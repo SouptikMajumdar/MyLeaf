@@ -51,11 +51,11 @@ RUN apk add --no-cache \
 RUN ARCH=$(uname -m) && \
     echo "Detected architecture: $ARCH" && \
     if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        TECTONIC_URL="https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-aarch64-unknown-linux-musl.tar.gz"; \
+    TECTONIC_URL="https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-aarch64-unknown-linux-musl.tar.gz"; \
     elif [ "$ARCH" = "x86_64" ]; then \
-        TECTONIC_URL="https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz"; \
+    TECTONIC_URL="https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz"; \
     else \
-        echo "Unsupported architecture: $ARCH" && exit 1; \
+    echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
     echo "Downloading tectonic from: $TECTONIC_URL" && \
     curl -fsSL "$TECTONIC_URL" | tar -xzf - -C /usr/local/bin && \
@@ -89,8 +89,9 @@ COPY --from=builder /app/node_modules/cookie ./node_modules/cookie
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
-# Create data directory with proper permissions
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app
+# Create data directory and tectonic cache with proper permissions
+RUN mkdir -p /app/data /home/nextjs/.cache/Tectonic && \
+    chown -R nextjs:nodejs /app /home/nextjs
 
 # Set user
 USER nextjs
