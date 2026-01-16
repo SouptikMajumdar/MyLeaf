@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { isDatabaseAvailable, requireDb } from "@/lib/db";
 import { ProjectWithRole, ProjectRole } from "@/types/project";
 
 export async function createProject(
@@ -6,6 +6,7 @@ export async function createProject(
   name: string,
   description?: string
 ): Promise<ProjectWithRole> {
+  const db = requireDb();
   const project = await db.project.create({
     data: {
       name,
@@ -30,6 +31,7 @@ export async function createProject(
 }
 
 export async function getProjects(userId: string): Promise<ProjectWithRole[]> {
+  const db = requireDb();
   // Get owned projects
   const ownedProjects = await db.project.findMany({
     where: { ownerId: userId },
@@ -83,6 +85,7 @@ export async function getProject(
   projectId: string,
   userId: string
 ): Promise<ProjectWithRole | null> {
+  const db = requireDb();
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: {
@@ -125,6 +128,7 @@ export async function updateProject(
     return null;
   }
 
+  const db = requireDb();
   const updated = await db.project.update({
     where: { id: projectId },
     data: {
@@ -150,6 +154,7 @@ export async function deleteProject(
   projectId: string,
   userId: string
 ): Promise<boolean> {
+  const db = requireDb();
   // Only owner can delete
   const project = await db.project.findUnique({
     where: { id: projectId },
@@ -167,6 +172,7 @@ export async function deleteProject(
 }
 
 export async function getProjectCollaborators(projectId: string) {
+  const db = requireDb();
   return db.projectCollaborator.findMany({
     where: { projectId },
     include: {
@@ -189,6 +195,7 @@ export async function addCollaborator(
   email: string,
   role: "editor" | "viewer" = "editor"
 ): Promise<{ success: boolean; error?: string }> {
+  const db = requireDb();
   // Verify owner
   const project = await db.project.findUnique({
     where: { id: projectId },
@@ -247,6 +254,7 @@ export async function removeCollaborator(
   ownerId: string,
   userId: string
 ): Promise<boolean> {
+  const db = requireDb();
   // Verify owner
   const project = await db.project.findUnique({
     where: { id: projectId },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getUser } from "@/lib/auth/middleware";
 import {
   getProject,
@@ -12,6 +13,13 @@ export async function GET(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Collaborators unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
     const user = await getUser(request);
 
     if (!user) {
@@ -50,6 +58,13 @@ export async function POST(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Collaborators unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
     const user = await getUser(request);
 
     if (!user) {

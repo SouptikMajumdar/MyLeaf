@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { isDatabaseAvailable } from "@/lib/db";
 import {
   exchangeCodeForToken,
   getOAuthUserInfo,
@@ -17,6 +18,11 @@ export async function GET(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   try {
+    // Check if database is configured
+    if (!isDatabaseAvailable()) {
+      return NextResponse.redirect(`${appUrl}/login?error=database_not_configured`);
+    }
+
     const { provider } = await params;
 
     if (!VALID_PROVIDERS.includes(provider as OAuthProvider)) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getUser } from "@/lib/auth/middleware";
 import {
   removeCollaborator,
@@ -11,6 +12,13 @@ export async function DELETE(
   { params }: { params: Promise<{ projectId: string; userId: string }> }
 ) {
   try {
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Collaborators unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
     const user = await getUser(request);
 
     if (!user) {

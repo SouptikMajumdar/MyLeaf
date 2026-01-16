@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
+import { isDatabaseAvailable, requireDb } from "@/lib/db";
 
 const SESSION_COOKIE_NAME = "myleaf_session";
 
@@ -11,12 +11,18 @@ export type AuthUser = {
 };
 
 export async function getUser(request: NextRequest): Promise<AuthUser | null> {
+  // If database is not configured, return null (demo mode)
+  if (!isDatabaseAvailable()) {
+    return null;
+  }
+
   const sessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionId) {
     return null;
   }
 
+  const db = requireDb();
   const session = await db.session.findUnique({
     where: { id: sessionId },
     include: { user: true },

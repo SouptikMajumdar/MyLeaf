@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getUser } from "@/lib/auth/middleware";
 import { createProject, getProjects } from "@/lib/services/project";
 
 // GET /api/projects - List user's projects
 export async function GET(request: NextRequest) {
   try {
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Projects unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
     const user = await getUser(request);
 
     if (!user) {
@@ -26,6 +34,13 @@ export async function GET(request: NextRequest) {
 // POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
   try {
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Projects unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
     const user = await getUser(request);
 
     if (!user) {

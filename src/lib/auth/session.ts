@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { isDatabaseAvailable, requireDb } from "@/lib/db";
 
 const SESSION_COOKIE_NAME = "myleaf_session";
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -11,6 +11,11 @@ function generateSessionId(): string {
 }
 
 export async function createSession(userId: string): Promise<string> {
+  if (!isDatabaseAvailable()) {
+    throw new Error("Database not configured");
+  }
+
+  const db = requireDb();
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
@@ -47,6 +52,11 @@ export async function clearSessionCookie(): Promise<void> {
 }
 
 export async function validateSession(sessionId: string) {
+  if (!isDatabaseAvailable()) {
+    return null;
+  }
+
+  const db = requireDb();
   const session = await db.session.findUnique({
     where: { id: sessionId },
     include: { user: true },
@@ -66,11 +76,21 @@ export async function validateSession(sessionId: string) {
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
+  if (!isDatabaseAvailable()) {
+    return;
+  }
+
+  const db = requireDb();
   await db.session.delete({ where: { id: sessionId } }).catch(() => {
     // Ignore errors if session doesn't exist
   });
 }
 
 export async function deleteAllUserSessions(userId: string): Promise<void> {
+  if (!isDatabaseAvailable()) {
+    return;
+  }
+
+  const db = requireDb();
   await db.session.deleteMany({ where: { userId } });
 }

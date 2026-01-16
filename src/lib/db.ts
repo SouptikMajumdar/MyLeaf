@@ -5,9 +5,33 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// Prevent multiple instances of Prisma Client in development
-export const db = globalThis.prisma || new PrismaClient();
+// Check if DATABASE_URL is configured
+const isDatabaseConfigured = !!process.env.DATABASE_URL;
 
-if (process.env.NODE_ENV !== "production") {
+// Only create Prisma client if DATABASE_URL is set
+function createPrismaClient(): PrismaClient | null {
+  if (!isDatabaseConfigured) {
+    return null;
+  }
+  return globalThis.prisma || new PrismaClient();
+}
+
+// Prevent multiple instances of Prisma Client in development
+export const db = createPrismaClient();
+
+if (process.env.NODE_ENV !== "production" && db) {
   globalThis.prisma = db;
+}
+
+// Helper to check if database is available
+export function isDatabaseAvailable(): boolean {
+  return isDatabaseConfigured && db !== null;
+}
+
+// Helper to get db with type assertion (throws if not available)
+export function requireDb(): PrismaClient {
+  if (!db) {
+    throw new Error("Database not configured. Set DATABASE_URL environment variable.");
+  }
+  return db;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { isDatabaseAvailable } from "@/lib/db";
 import { getAuthorizationUrl, OAuthProvider } from "@/lib/auth/oauth";
 
 const VALID_PROVIDERS: OAuthProvider[] = ["google", "github"];
@@ -8,15 +9,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
   try {
+    // Check if database is configured
+    if (!isDatabaseAvailable()) {
+      return NextResponse.redirect(`${appUrl}/login?error=database_not_configured`);
+    }
+
     const { provider } = await params;
 
     if (!VALID_PROVIDERS.includes(provider as OAuthProvider)) {
       return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
     }
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const redirectUri = `${appUrl}/api/auth/oauth/${provider}/callback`;
 
     // Generate random state for CSRF protection
@@ -47,9 +53,6 @@ export async function GET(
     return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error("OAuth initiation error:", error);
-    return NextResponse.json(
-      { error: "Failed to initiate OAuth" },
-      { status: 500 }
-    );
+    return NextResponse.redirect(`${appUrl}/login?error=oauth_failed`);
   }
 }

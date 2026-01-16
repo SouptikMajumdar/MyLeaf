@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { isDatabaseAvailable, requireDb } from "@/lib/db";
 
 export type OAuthProvider = "google" | "github";
 
@@ -163,6 +163,12 @@ export async function findOrCreateOAuthUser(
   provider: OAuthProvider,
   userInfo: OAuthUserInfo
 ): Promise<string> {
+  if (!isDatabaseAvailable()) {
+    throw new Error("Database not configured");
+  }
+
+  const db = requireDb();
+
   // Check if account already exists
   const existingAccount = await db.account.findUnique({
     where: {

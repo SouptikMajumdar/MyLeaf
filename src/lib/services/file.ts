@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { requireDb } from "@/lib/db";
 import { FileNode } from "@/types/files";
 import { checkProjectAccess } from "./project";
 
@@ -96,6 +96,7 @@ export async function getFileTree(
   const access = await checkProjectAccess(projectId, userId);
   if (!access) return null;
 
+  const db = requireDb();
   const project = await db.project.findUnique({
     where: { id: projectId },
   });
@@ -121,6 +122,8 @@ export async function createFile(
 ) {
   const access = await checkProjectAccess(projectId, userId);
   if (!access || access === "viewer") return null;
+
+  const db = requireDb();
 
   // Validate parent exists if provided
   if (parentId) {
@@ -160,6 +163,7 @@ export async function getFile(
   fileId: string,
   userId: string
 ) {
+  const db = requireDb();
   const file = await db.file.findUnique({
     where: { id: fileId },
     include: { project: true },
@@ -186,6 +190,7 @@ export async function updateFile(
   userId: string,
   data: { name?: string; content?: string }
 ) {
+  const db = requireDb();
   const file = await db.file.findUnique({
     where: { id: fileId },
   });
@@ -221,6 +226,7 @@ export async function updateFile(
 
 // Delete file (and cascade children for folders)
 export async function deleteFile(fileId: string, userId: string) {
+  const db = requireDb();
   const file = await db.file.findUnique({
     where: { id: fileId },
   });
@@ -250,6 +256,7 @@ export async function moveFile(
   userId: string,
   newParentId: string | null
 ) {
+  const db = requireDb();
   const file = await db.file.findUnique({
     where: { id: fileId },
   });
@@ -291,6 +298,7 @@ export async function moveFile(
 
 // Initialize a project with default files
 export async function initializeProjectFiles(projectId: string) {
+  const db = requireDb();
   // Check if project already has files
   const existingFiles = await db.file.count({
     where: { projectId },
@@ -318,6 +326,7 @@ export async function getProjectFiles(
   const access = await checkProjectAccess(projectId, userId);
   if (!access) return null;
 
+  const db = requireDb();
   const files = await db.file.findMany({
     where: { projectId, type: "file" },
   });

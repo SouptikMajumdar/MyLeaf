@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { isDatabaseAvailable, requireDb } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, setSessionCookie } from "@/lib/auth/session";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if database is configured
+    if (!isDatabaseAvailable()) {
+      return NextResponse.json(
+        { error: "Login unavailable in demo mode. Database not configured." },
+        { status: 503 }
+      );
+    }
+
+    const db = requireDb();
     const body = await request.json();
     const { email, password } = body;
 
