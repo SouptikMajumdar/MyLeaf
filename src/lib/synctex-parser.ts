@@ -67,6 +67,11 @@ export interface SyncTeXData {
 
 /**
  * Parse SyncTeX content into structured data
+ * Tectonic format examples:
+ * - (1,121:4810670,39540112:0,786432,0  -> (fileIndex,line:x,y:w,h,d
+ * - g1,121:4810670,39540112             -> gFileIndex,line:x,y
+ * - x1,121:5685182,39540112             -> xFileIndex,line:x,y
+ * - [1,121:4810670,39540112:...         -> [fileIndex,line:x,y:...
  */
 function parseSyncTeXContent(content: string): SyncTeXData {
     const entries: SyncTeXEntry[] = [];
@@ -77,8 +82,6 @@ function parseSyncTeXContent(content: string): SyncTeXData {
     let xOffset = 0;
     let yOffset = 0;
     let currentPage = 0;
-    let currentFile = '';
-    let currentFileIndex = 0;
 
     for (const line of lines) {
         // SyncTeX preamble
@@ -104,54 +107,53 @@ function parseSyncTeXContent(content: string): SyncTeXData {
             continue;
         }
 
-        // Page boundary: {n or }n
+        // Page boundary: {n
         if (line.startsWith('{')) {
-            const match = line.match(/^\{(\d+)$/);
+            const match = line.match(/^\{(\d+)/);
             if (match) {
                 currentPage = parseInt(match[1]);
             }
             continue;
         }
 
-        // File reference in content: (n or )n
-        if (line.match(/^\((\d+)$/)) {
-            currentFileIndex = parseInt(line.slice(1));
-            currentFile = files.get(currentFileIndex) || '';
+        // Tectonic synctex format: (fileIndex,line:x,y:w,h,d or [fileIndex,line:x,y:...
+        // Pattern: opening bracket/paren + fileIndex,line:x,y:optional_rest
+        const boxMatch = line.match(/^[([](\d+),(\d+):(-?\d+),(-?\d+)(?::(-?\d+),(-?\d+),(-?\d+))?/);
+        if (boxMatch) {
+            const fileIndex = parseInt(boxMatch[1]);
+            const filename = files.get(fileIndex) || '';
+            if (filename) {
+                entries.push({
+                    file: filename,
+                    line: parseInt(boxMatch[2]),
+                    column: 0,
+                    page: currentPage,
+                    x: parseInt(boxMatch[3]),
+                    y: parseInt(boxMatch[4]),
+                    width: parseInt(boxMatch[5]) || 0,
+                    height: parseInt(boxMatch[6]) || 0,
+                });
+            }
             continue;
         }
 
-        // Content boxes - various formats:
-        // h for hbox, v for vbox, k for kern, x for ref, g for glue
-        // Format: type:line:column:page:x:y:W:H:D (width, height, depth)
-        const boxMatch = line.match(/^([hvkxg]):(\d+):(\d+):(-?\d+):(-?\d+):(-?\d+):(-?\d+)?:?(-?\d+)?/);
-        if (boxMatch && currentFile) {
-            entries.push({
-                file: currentFile,
-                line: parseInt(boxMatch[2]),
-                column: parseInt(boxMatch[3]),
-                page: currentPage,
-                x: parseInt(boxMatch[4]),
-                y: parseInt(boxMatch[5]),
-                width: parseInt(boxMatch[6]) || 0,
-                height: parseInt(boxMatch[7]) || 0,
-            });
-            continue;
-        }
-
-        // Alternative format: just a reference line
-        // Sometimes synctex uses different formats
-        const altMatch = line.match(/^([hvkxg])(\d+),(\d+):(\d+),(\d+)(?::(\d+),(\d+),(\d+))?/);
-        if (altMatch && currentFile) {
-            entries.push({
-                file: currentFile,
-                line: parseInt(altMatch[2]),
-                column: parseInt(altMatch[3]),
-                page: currentPage,
-                x: parseInt(altMatch[4]),
-                y: parseInt(altMatch[5]),
-                width: parseInt(altMatch[6]) || 0,
-                height: parseInt(altMatch[7]) || 0,
-            });
+        // Glue/kern/etc: gFileIndex,line:x,y or xFileIndex,line:x,y or hFileIndex,line:x,y
+        const glueMatch = line.match(/^([gxhvk])(\d+),(\d+):(-?\d+),(-?\d+)/);
+        if (glueMatch) {
+            const fileIndex = parseInt(glueMatch[2]);
+            const filename = files.get(fileIndex) || '';
+            if (filename) {
+                entries.push({
+                    file: filename,
+                    line: parseInt(glueMatch[3]),
+                    column: 0,
+                    page: currentPage,
+                    x: parseInt(glueMatch[4]),
+                    y: parseInt(glueMatch[5]),
+                    width: 0,
+                    height: 0,
+                });
+            }
         }
     }
 
@@ -230,7 +232,6 @@ export async function findSourceLocation(
 
         const data = parseSyncTeXContent(content);
         const entry = findClosestEntry(data, page, pdfX, pdfY, pageHeight);
-
         if (!entry) return null;
 
         // Return just the basename of the file

@@ -234,13 +234,27 @@ export async function POST(request: Request) {
       const pdfBytes = await fs.readFile(pdfPath);
 
       // Try to read SyncTeX data if available
+      // Tectonic might put synctex in outDir or main dir depending on version
       let synctexData: string | null = null;
-      const synctexPath = path.join(outDir, pdfName.replace(/\.pdf$/, ".synctex.gz"));
-      try {
-        const synctexBuffer = await fs.readFile(synctexPath);
-        synctexData = synctexBuffer.toString("base64");
-      } catch {
-        // SyncTeX file not available, continue without it
+      const synctexName = pdfName.replace(/\.pdf$/, ".synctex.gz");
+      const synctexPaths = [
+        path.join(outDir, synctexName),
+        path.join(dir, synctexName),
+      ];
+
+      for (const synctexPath of synctexPaths) {
+        try {
+          const synctexBuffer = await fs.readFile(synctexPath);
+          synctexData = synctexBuffer.toString("base64");
+          console.log(`SyncTeX found at: ${synctexPath}, size: ${synctexBuffer.length} bytes`);
+          break;
+        } catch {
+          // Try next path
+        }
+      }
+
+      if (!synctexData) {
+        console.log("SyncTeX file not found in expected locations");
       }
 
       return { pdfBytes, synctexData };
