@@ -11,12 +11,17 @@ services:
       - NODE_ENV=production
       - ENABLE_COLLABORATION=true
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3002/api/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.myleaf.rule=Host(`myleaf-myleaf-ejfd59-269645-91-99-225-161.traefik.me`)"
+      - "traefik.http.routers.myleaf.entrypoints=web"
+      - "traefik.http.services.myleaf.loadbalancer.server.port=3002"
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   myleaf-data:
