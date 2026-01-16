@@ -188,13 +188,13 @@ function runTectonic(args: string[], cwd: string): Promise<{ stderr: string }> {
 export async function POST(request: Request) {
   try {
     const { files, mainFile } = await readRequestFiles(request);
-    
+
     // Calculate total size of all files
     let totalBytes = 0;
     for (const file of files) {
       totalBytes += Buffer.byteLength(file.content, "utf8");
     }
-    
+
     if (totalBytes > MAX_TEX_BYTES * 10) { // Allow 10x for multi-file projects
       return Response.json(
         {
@@ -204,7 +204,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const pdfBytes = await withTempDir(async (dir) => {
+    const result = await withTempDir(async (dir) => {
       const outDir = path.join(dir, "out");
       await fs.mkdir(outDir, { recursive: true });
 
@@ -216,14 +216,14 @@ export async function POST(request: Request) {
         await fs.writeFile(filePath, file.content, { encoding: "utf8" });
       }
 
-      // Compile the main file
+      // Compile the main file with SyncTeX enabled
       const safeMainFile = path.basename(mainFile);
-      await runTectonic([safeMainFile, "--outdir", "out"], dir);
+      await runTectonic([safeMainFile, "--outdir", "out", "--synctex"], dir);
 
       // The output PDF name matches the input file name
       const pdfName = safeMainFile.replace(/\.tex$/, ".pdf");
       const pdfPath = path.join(outDir, pdfName);
-      
+
       const stat = await fs.stat(pdfPath);
       if (stat.size > MAX_PDF_BYTES) {
         throw new Error(
@@ -231,15 +231,34 @@ export async function POST(request: Request) {
         );
       }
 
-      return await fs.readFile(pdfPath);
+      const pdfBytes = await fs.readFile(pdfPath);
+
+      // Try to read SyncTeX data if available
+      let synctexData: string | null = null;
+      const synctexPath = path.join(outDir, pdfName.replace(/\.pdf$/, ".synctex.gz"));
+      try {
+        const synctexBuffer = await fs.readFile(synctexPath);
+        synctexData = synctexBuffer.toString("base64");
+      } catch {
+        // SyncTeX file not available, continue without it
+      }
+
+      return { pdfBytes, synctexData };
     });
 
-    return new Response(pdfBytes, {
+    const headers: HeadersInit = {
+      "content-type": "application/pdf",
+      "cache-control": "no-store",
+    };
+
+    // Include SyncTeX data as a header (base64 encoded)
+    if (result.synctexData) {
+      headers["x-synctex-data"] = result.synctexData;
+    }
+
+    return new Response(result.pdfBytes, {
       status: 200,
-      headers: {
-        "content-type": "application/pdf",
-        "cache-control": "no-store",
-      },
+      headers,
     });
   } catch (err) {
     if (err instanceof Response) return err;
