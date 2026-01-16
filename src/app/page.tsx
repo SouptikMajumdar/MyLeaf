@@ -21,6 +21,7 @@ import { CitationFinderPanel } from "@/components/ai/CitationFinderPanel";
 import { ConferenceTemplatePanel } from "@/components/ConferenceTemplatePanel";
 import FileExplorer from "@/components/FileExplorer";
 import { CollaborativeEditor } from "@/components/CollaborativeEditor";
+import { PDFViewer } from "@/components/PDFViewer";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   FileNode,
@@ -71,6 +72,7 @@ export default function Home() {
   const texContent = activeFile?.type === "file" ? activeFile.content ?? "" : "";
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [synctexData, setSynctexData] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [compileError, setCompileError] = useState<string | null>(null);
 
@@ -269,6 +271,10 @@ export default function Home() {
         return;
       }
 
+      // Get synctex data from header if available
+      const synctex = response.headers.get("x-synctex-data");
+      setSynctexData(synctex);
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
 
@@ -280,6 +286,30 @@ export default function Home() {
       setIsCompiling(false);
     }
   }, [texContent, isCompiling, pdfUrl, projectRoot, activeFile, collectProjectFiles]);
+
+  // Handle SyncTeX source navigation
+  const handleSourceClick = useCallback((filename: string, line: number) => {
+    // Find the file in the project by name
+    const findFileByName = (node: FileNode, name: string): FileNode | null => {
+      if (node.type === "file" && node.name === name) return node;
+      if (node.children) {
+        for (const child of node.children) {
+          const found = findFileByName(child, name);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const targetFile = findFileByName(projectRoot, filename);
+    if (targetFile) {
+      setActiveFileId(targetFile.id);
+      // TODO: In the future, scroll the editor to the specific line
+      console.log(`Navigating to ${filename}:${line}`);
+    } else {
+      console.warn(`File not found: ${filename}`);
+    }
+  }, [projectRoot]);
 
   return (
     <main className="h-screen w-screen bg-background text-foreground flex flex-col">
@@ -449,17 +479,18 @@ export default function Home() {
                 <header className="border-b border-foreground/10 px-4 py-2 text-sm font-medium">
                   PDF Preview
                 </header>
-                <div className="flex flex-1 flex-col">
+                <div className="flex flex-1 flex-col min-h-0">
                   {compileError && (
                     <div className="m-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
                       {compileError}
                     </div>
                   )}
                   {pdfUrl ? (
-                    <iframe
-                      src={pdfUrl}
-                      className="h-full w-full"
-                      title="PDF Preview"
+                    <PDFViewer
+                      url={pdfUrl}
+                      synctexData={synctexData ?? undefined}
+                      onSourceClick={handleSourceClick}
+                      className="flex-1"
                     />
                   ) : (
                     <div className="flex flex-1 items-center justify-center p-6">
