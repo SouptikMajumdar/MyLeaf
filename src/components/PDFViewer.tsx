@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { findSourceLocation } from "@/lib/synctex-parser";
 
 // Import pdf.js dynamically to avoid SSR issues
@@ -34,14 +34,17 @@ export function PDFViewer({
     className = "",
 }: PDFViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const [pdf, setPdf] = useState<import("pdfjs-dist").PDFDocumentProxy | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [scale, setScale] = useState(1.0);
+    const [scale, setScale] = useState(1.5); // Higher default for better quality
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [renderedPages, setRenderedPages] = useState<Map<number, HTMLCanvasElement>>(new Map());
+
+    // Device pixel ratio for high-DPI displays
+    const devicePixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
     // Load PDF document
     useEffect(() => {
@@ -51,6 +54,7 @@ export function PDFViewer({
             try {
                 setIsLoading(true);
                 setError(null);
+                setRenderedPages(new Map());
 
                 const pdfjs = await loadPdfJs();
                 const loadingTask = pdfjs.getDocument(url);
@@ -60,7 +64,6 @@ export function PDFViewer({
 
                 setPdf(pdfDoc);
                 setTotalPages(pdfDoc.numPages);
-                setCurrentPage(1);
             } catch (err) {
                 if (!cancelled) {
                     setError(err instanceof Error ? err.message : "Failed to load PDF");
@@ -79,67 +82,87 @@ export function PDFViewer({
         };
     }, [url]);
 
-    // Render current page
+    // Render all pages
     useEffect(() => {
-        if (!pdf || !canvasRef.current) return;
+        if (!pdf || !containerRef.current) return;
 
         let cancelled = false;
 
-        async function renderPage() {
-            const page = await pdf!.getPage(currentPage);
-            if (cancelled) return;
+        async function renderAllPages() {
+            const newRenderedPages = new Map<number, HTMLCanvasElement>();
 
-            const canvas = canvasRef.current!;
-            const context = canvas.getContext("2d");
-            if (!context) return;
+            for (let pageNum = 1; pageNum <= pdf!.numPages; pageNum++) {
+                if (cancelled) break;
 
-            // Calculate scale to fit width
-            const container = containerRef.current;
-            const containerWidth = container?.clientWidth || 800;
-            const viewport = page.getViewport({ scale: 1 });
-            const fitScale = (containerWidth - 32) / viewport.width; // 32px for padding
-            const actualScale = scale === 1.0 ? fitScale : scale;
+                const page = await pdf!.getPage(pageNum);
+                const viewport = page.getViewport({ scale });
 
-            const scaledViewport = page.getViewport({ scale: actualScale });
+                // Create high-resolution canvas
+                const canvas = document.createElement("canvas");
+                const context = canvas.getContext("2d");
+                if (!context) continue;
 
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
+                // Scale canvas for high-DPI displays
+                const outputScale = devicePixelRatio;
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
+                canvas.style.width = `${Math.floor(viewport.width)}px`;
+                canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-            // Store page dimensions for SyncTeX calculations
-            canvas.dataset.pageHeight = String(viewport.height);
-            canvas.dataset.scale = String(actualScale);
+                // Store page info for SyncTeX
+                canvas.dataset.pageNum = String(pageNum);
+                canvas.dataset.pageHeight = String(viewport.height / scale);
+                canvas.dataset.scale = String(scale);
 
-            await page.render({
-                canvasContext: context,
-                viewport: scaledViewport,
-            }).promise;
+                const transform = outputScale !== 1
+                    ? [outputScale, 0, 0, outputScale, 0, 0]
+                    : undefined;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport,
+                    transform,
+                }).promise;
+
+                newRenderedPages.set(pageNum, canvas);
+            }
+
+            if (!cancelled) {
+                setRenderedPages(newRenderedPages);
+            }
         }
 
-        renderPage();
+        renderAllPages();
 
         return () => {
             cancelled = true;
         };
-    }, [pdf, currentPage, scale]);
+    }, [pdf, scale, devicePixelRatio]);
 
     // Handle double-click for SyncTeX
     const handleDoubleClick = useCallback(
-        async (e: React.MouseEvent<HTMLCanvasElement>) => {
-            if (!synctexData || !onSourceClick || !canvasRef.current) return;
+        async (e: React.MouseEvent<HTMLDivElement>) => {
+            if (!synctexData || !onSourceClick) return;
 
-            const canvas = canvasRef.current;
-            const rect = canvas.getBoundingClientRect();
-            const canvasScale = parseFloat(canvas.dataset.scale || "1");
+            const target = e.target as HTMLElement;
+            const canvas = target.closest("canvas") as HTMLCanvasElement | null;
+            if (!canvas) return;
+
+            const pageNum = parseInt(canvas.dataset.pageNum || "1");
             const pageHeight = parseFloat(canvas.dataset.pageHeight || "792");
+            const canvasScale = parseFloat(canvas.dataset.scale || "1");
+
+            const rect = canvas.getBoundingClientRect();
+            const displayScale = canvas.clientWidth / (parseFloat(canvas.style.width) || canvas.clientWidth);
 
             // Convert click position to PDF coordinates
-            const clickX = (e.clientX - rect.left) / canvasScale;
-            const clickY = (e.clientY - rect.top) / canvasScale;
+            const clickX = (e.clientX - rect.left) / canvasScale / displayScale;
+            const clickY = (e.clientY - rect.top) / canvasScale / displayScale;
 
             // Find source location
             const result = await findSourceLocation(
                 synctexData,
-                currentPage,
+                pageNum,
                 clickX,
                 clickY,
                 pageHeight
@@ -149,17 +172,23 @@ export function PDFViewer({
                 onSourceClick(result.file, result.line);
             }
         },
-        [synctexData, onSourceClick, currentPage]
+        [synctexData, onSourceClick]
     );
 
-    // Navigation
-    const prevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
-    const nextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-
-    // Zoom
-    const zoomIn = () => setScale((s) => Math.min(3, s + 0.25));
+    // Zoom controls
+    const zoomIn = () => setScale((s) => Math.min(4, s + 0.25));
     const zoomOut = () => setScale((s) => Math.max(0.5, s - 0.25));
-    const fitWidth = () => setScale(1.0);
+    const fitWidth = () => {
+        if (containerRef.current && pdf) {
+            // Calculate scale to fit container width
+            const containerWidth = containerRef.current.clientWidth - 48; // padding
+            pdf.getPage(1).then((page) => {
+                const viewport = page.getViewport({ scale: 1 });
+                const newScale = containerWidth / viewport.width;
+                setScale(Math.max(0.5, Math.min(4, newScale)));
+            });
+        }
+    };
 
     if (error) {
         return (
@@ -172,27 +201,11 @@ export function PDFViewer({
     return (
         <div className={`flex flex-col h-full ${className}`} ref={containerRef}>
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-foreground/10 bg-background/50">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-foreground/10 bg-background/50 shrink-0">
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={prevPage}
-                        disabled={currentPage <= 1}
-                        className="p-1 rounded hover:bg-foreground/10 disabled:opacity-30"
-                        title="Previous page"
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs tabular-nums">
-                        {currentPage} / {totalPages}
+                    <span className="text-xs text-foreground/60">
+                        {totalPages > 0 ? `${totalPages} page${totalPages > 1 ? "s" : ""}` : "Loading..."}
                     </span>
-                    <button
-                        onClick={nextPage}
-                        disabled={currentPage >= totalPages}
-                        className="p-1 rounded hover:bg-foreground/10 disabled:opacity-30"
-                        title="Next page"
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </button>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -223,25 +236,43 @@ export function PDFViewer({
                 </div>
             </div>
 
-            {/* PDF Canvas */}
-            <div className="flex-1 overflow-auto bg-neutral-800 flex justify-center p-4">
+            {/* Scrollable PDF Container */}
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 overflow-auto bg-neutral-800"
+                onDoubleClick={handleDoubleClick}
+            >
                 {isLoading ? (
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center h-full">
                         <div className="animate-spin h-8 w-8 border-2 border-foreground/20 border-t-foreground rounded-full" />
                     </div>
                 ) : (
-                    <canvas
-                        ref={canvasRef}
-                        onDoubleClick={handleDoubleClick}
-                        className="shadow-lg cursor-crosshair"
-                        title={synctexData ? "Double-click to jump to source" : undefined}
-                    />
+                    <div className="flex flex-col items-center gap-4 p-4">
+                        {Array.from(renderedPages.entries())
+                            .sort(([a], [b]) => a - b)
+                            .map(([pageNum, canvas]) => (
+                                <div
+                                    key={pageNum}
+                                    className="shadow-lg bg-white"
+                                    ref={(el) => {
+                                        if (el && !el.contains(canvas)) {
+                                            el.innerHTML = "";
+                                            el.appendChild(canvas);
+                                        }
+                                    }}
+                                    style={{
+                                        width: canvas.style.width,
+                                        height: canvas.style.height,
+                                    }}
+                                />
+                            ))}
+                    </div>
                 )}
             </div>
 
             {/* SyncTeX hint */}
             {synctexData && (
-                <div className="text-center text-xs text-foreground/40 py-1 border-t border-foreground/10">
+                <div className="text-center text-xs text-foreground/40 py-1 border-t border-foreground/10 shrink-0">
                     Double-click to jump to source
                 </div>
             )}
