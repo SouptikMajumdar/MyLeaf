@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import {
   Sparkles,
@@ -10,12 +12,16 @@ import {
   PanelLeftClose,
   PanelLeft,
   Users,
+  Leaf,
+  LogIn,
+  X,
 } from "lucide-react";
 import { MathHelperPanel } from "@/components/ai/MathHelperPanel";
 import { CitationFinderPanel } from "@/components/ai/CitationFinderPanel";
 import { ConferenceTemplatePanel } from "@/components/ConferenceTemplatePanel";
 import FileExplorer from "@/components/FileExplorer";
 import { CollaborativeEditor } from "@/components/CollaborativeEditor";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   FileNode,
   createDefaultProject,
@@ -29,11 +35,22 @@ import {
 } from "@/types/files";
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+  const [showDemoBanner, setShowDemoBanner] = useState(true);
+
   const [isMathHelperOpen, setMathHelperOpen] = useState(false);
   const [isCitationFinderOpen, setCitationFinderOpen] = useState(false);
   const [isTemplatePanelOpen, setTemplatePanelOpen] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isCollabEnabled, setCollabEnabled] = useState(false);
+
+  // Redirect authenticated users to projects page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push("/projects");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // File system state
   const [projectRoot, setProjectRoot] = useState<FileNode>(() =>
@@ -265,7 +282,54 @@ export default function Home() {
   }, [texContent, isCompiling, pdfUrl, projectRoot, activeFile, collectProjectFiles]);
 
   return (
-    <main className="h-screen w-screen bg-background text-foreground flex">
+    <main className="h-screen w-screen bg-background text-foreground flex flex-col">
+      {/* Demo mode banner */}
+      {showDemoBanner && !isAuthenticated && (
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-2 text-white text-sm flex items-center justify-center gap-4">
+          <span>
+            You&apos;re using MyLeaf in demo mode. Your work won&apos;t be saved.
+          </span>
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-md transition-colors"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in to save
+          </Link>
+          <button
+            onClick={() => setShowDemoBanner(false)}
+            className="p-1 hover:bg-white/20 rounded transition-colors"
+            title="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-foreground/10 px-4 py-2">
+        <Link href="/" className="flex items-center gap-2 font-bold">
+          <Leaf className="h-6 w-6 text-green-600" />
+          <span>MyLeaf</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="px-3 py-1.5 text-sm rounded-md hover:bg-foreground/5"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="px-3 py-1.5 text-sm rounded-md bg-green-600 text-white hover:bg-green-700"
+          >
+            Sign up
+          </Link>
+        </div>
+      </header>
+
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
       {/* Collapsible File Explorer Sidebar */}
       {isSidebarOpen && (
         <div className="w-60 shrink-0 border-r border-foreground/10">
@@ -407,6 +471,7 @@ export default function Home() {
             </section>
           </Panel>
         </Group>
+      </div>
       </div>
 
       {/* Math Helper Modal */}

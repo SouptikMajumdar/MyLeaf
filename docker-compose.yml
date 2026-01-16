@@ -1,3 +1,7 @@
+# ==============================================================================
+# MyLeaf Docker Compose - Production Deployment
+# ==============================================================================
+
 services:
   myleaf:
     build:
@@ -9,10 +13,40 @@ services:
       - "1234:1234"
     volumes:
       - myleaf-data:/app/data
+      - tectonic-cache:/home/nextjs/.cache/Tectonic
     environment:
       - NODE_ENV=production
-      - ENABLE_COLLABORATION=true
+      - PORT=3002
+      - WS_PORT=1234
+
+      # Database (Supabase PostgreSQL)
+      - DATABASE_URL=${DATABASE_URL}
+
+      # App URL (for OAuth callbacks)
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3002}
+
+      # AI Provider (optional)
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # OAuth (optional)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+
+      # Compilation limits
+      - MYLEAF_MAX_TEX_BYTES=${MYLEAF_MAX_TEX_BYTES:-200000}
+      - MYLEAF_MAX_PDF_BYTES=${MYLEAF_MAX_PDF_BYTES:-10000000}
+      - MYLEAF_COMPILE_TIMEOUT_MS=${MYLEAF_COMPILE_TIMEOUT_MS:-20000}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.myleaf.rule=Host(`myleaf-myleaf-ejfd59-269645-91-99-225-161.traefik.me`)"
@@ -20,6 +54,11 @@ services:
       - "traefik.http.services.myleaf.loadbalancer.server.port=3002"
     networks:
       - dokploy-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   dokploy-network:
@@ -27,4 +66,6 @@ networks:
 
 volumes:
   myleaf-data:
+    driver: local
+  tectonic-cache:
     driver: local

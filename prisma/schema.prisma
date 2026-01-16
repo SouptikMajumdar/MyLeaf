@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?   // null for OAuth-only users
+  name         String?
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  accounts       Account[]
+  sessions       Session[]
+  ownedProjects  Project[]             @relation("ProjectOwner")
+  collaborations ProjectCollaborator[]
+}
+
+model Account {
+  id                String @id @default(cuid())
+  userId            String
+  provider          String // "google" | "github"
+  providerAccountId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ownerId     String
+
+  owner         User                  @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  files         File[]
+  collaborators ProjectCollaborator[]
+
+  @@index([ownerId])
+}
+
+model ProjectCollaborator {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("editor") // "editor" | "viewer"
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   // "file" | "folder"
+  content   String?  // null for folders, use Text for large content
+  parentId  String?  // null for root-level files
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   File?   @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children File[]  @relation("FileTree")
+
+  @@index([projectId])
+  @@index([parentId])
+}
