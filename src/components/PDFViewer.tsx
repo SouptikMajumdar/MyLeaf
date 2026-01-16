@@ -10,8 +10,8 @@ let pdfjsLib: typeof import("pdfjs-dist") | null = null;
 async function loadPdfJs() {
     if (!pdfjsLib) {
         pdfjsLib = await import("pdfjs-dist");
-        // Set worker path
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        // Use unpkg for reliable worker loading with exact version
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     }
     return pdfjsLib;
 }
