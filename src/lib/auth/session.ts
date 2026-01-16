@@ -32,9 +32,13 @@ export async function createSession(userId: string): Promise<string> {
 
 export async function setSessionCookie(sessionId: string): Promise<void> {
   const cookieStore = await cookies();
+  // Allow COOKIE_SECURE=false to disable secure cookies for HTTP (not recommended for production)
+  const isSecure = process.env.COOKIE_SECURE === "false"
+    ? false
+    : process.env.NODE_ENV === "production";
   cookieStore.set(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_MS / 1000,
