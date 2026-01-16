@@ -120,10 +120,24 @@ export function CollaborativeEditor({
             ]),
             oneDark,
             EditorView.theme({
-                "&": { height: "100%", fontSize: "14px" },
-                ".cm-scroller": { overflow: "auto" },
-                ".cm-content": {
+                "&": {
+                    height: "100%",
+                    fontSize: "14px",
+                    backgroundColor: "transparent",
+                },
+                ".cm-scroller": {
+                    overflow: "auto",
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                },
+                ".cm-gutters": {
+                    backgroundColor: "transparent",
+                    borderRight: "1px solid rgba(255,255,255,0.1)",
+                },
+                ".cm-content": {
+                    padding: "8px 0",
+                },
+                ".cm-line": {
+                    padding: "0 8px",
                 },
                 ".cm-ySelectionInfo": {
                     padding: "2px 4px",

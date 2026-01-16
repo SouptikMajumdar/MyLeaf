@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* Ensure proper sizing for full-height layouts */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+#__next {
+  height: 100%;
+}
+
+/* CodeMirror editor fixes */
+.cm-editor {
+  height: 100% !important;
+}
+
+.cm-editor .cm-scroller {
+  overflow: auto !important;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

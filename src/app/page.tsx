@@ -330,148 +330,149 @@ export default function Home() {
 
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
-      {/* Collapsible File Explorer Sidebar */}
-      {isSidebarOpen && (
-        <div className="w-60 shrink-0 border-r border-foreground/10">
-          <FileExplorer
-            root={projectRoot}
-            activeFileId={activeFileId}
-            onFileSelect={handleFileSelect}
-            onCreateFile={handleCreateFile}
-            onCreateFolder={handleCreateFolder}
-            onRename={handleRename}
-            onDelete={handleDelete}
-          />
-        </div>
-      )}
+        {/* Collapsible File Explorer Sidebar */}
+        {isSidebarOpen && (
+          <div className="w-60 shrink-0 border-r border-foreground/10">
+            <FileExplorer
+              root={projectRoot}
+              activeFileId={activeFileId}
+              onFileSelect={handleFileSelect}
+              onCreateFile={handleCreateFile}
+              onCreateFolder={handleCreateFolder}
+              onRename={handleRename}
+              onDelete={handleDelete}
+            />
+          </div>
+        )}
 
-      {/* Main Editor + Preview Area */}
-      <div className="flex-1 h-full">
-        <Group orientation="horizontal" className="h-full">
-          <Panel defaultSize={55} minSize={30} className="h-full">
-            <section className="flex h-full flex-col border-r border-foreground/10">
-              <header className="flex items-center justify-between border-b border-foreground/10 px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSidebarOpen((prev) => !prev)}
-                    className="p-1 rounded hover:bg-foreground/10"
-                    title="Toggle Sidebar (⌘B)"
-                  >
-                    {isSidebarOpen ? (
-                      <PanelLeftClose className="h-4 w-4" />
-                    ) : (
-                      <PanelLeft className="h-4 w-4" />
-                    )}
-                  </button>
-                  <span className="text-sm font-medium">
-                    {activeFile?.name ?? "Editor"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {/* Collaboration Toggle */}
-                  <button
-                    onClick={() => setCollabEnabled((prev) => !prev)}
-                    className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors ${isCollabEnabled
+        {/* Main Editor + Preview Area */}
+        <div className="flex-1 h-full">
+          <Group orientation="horizontal" className="h-full">
+            <Panel defaultSize={55} minSize={30} className="h-full">
+              <section className="flex h-full flex-col border-r border-foreground/10">
+                <header className="flex items-center justify-between border-b border-foreground/10 px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSidebarOpen((prev) => !prev)}
+                      className="p-1 rounded hover:bg-foreground/10"
+                      title="Toggle Sidebar (⌘B)"
+                    >
+                      {isSidebarOpen ? (
+                        <PanelLeftClose className="h-4 w-4" />
+                      ) : (
+                        <PanelLeft className="h-4 w-4" />
+                      )}
+                    </button>
+                    <span className="text-sm font-medium">
+                      {activeFile?.name ?? "Editor"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Collaboration Toggle */}
+                    <button
+                      onClick={() => setCollabEnabled((prev) => !prev)}
+                      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors ${isCollabEnabled
                         ? "bg-blue-600 text-white hover:bg-blue-700"
                         : "hover:bg-foreground/10"
-                      }`}
-                    title={isCollabEnabled ? "Collaboration ON" : "Collaboration OFF"}
-                  >
-                    <Users className="h-3.5 w-3.5" />
-                    {isCollabEnabled ? "Live" : "Solo"}
-                  </button>
-                  <button
-                    onClick={() => setTemplatePanelOpen(true)}
-                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
-                    title="Conference Templates"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Templates
-                  </button>
-                  <button
-                    onClick={() => setMathHelperOpen(true)}
-                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
-                    title="Math Helper (⌘M)"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Math
-                  </button>
-                  <button
-                    onClick={() => setCitationFinderOpen(true)}
-                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
-                    title="Citation Finder (⌘⇧C)"
-                  >
-                    <BookOpen className="h-3.5 w-3.5" />
-                    Cite
-                  </button>
-                  <button
-                    onClick={handleCompile}
-                    disabled={isCompiling || !texContent.trim()}
-                    className="flex items-center gap-1.5 rounded-md bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Compile (⌘Enter)"
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                    {isCompiling ? "Compiling..." : "Compile"}
-                  </button>
+                        }`}
+                      title={isCollabEnabled ? "Collaboration ON" : "Collaboration OFF"}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      {isCollabEnabled ? "Live" : "Solo"}
+                    </button>
+                    <button
+                      onClick={() => setTemplatePanelOpen(true)}
+                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
+                      title="Conference Templates"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Templates
+                    </button>
+                    <button
+                      onClick={() => setMathHelperOpen(true)}
+                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
+                      title="Math Helper (⌘M)"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Math
+                    </button>
+                    <button
+                      onClick={() => setCitationFinderOpen(true)}
+                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-foreground/10"
+                      title="Citation Finder (⌘⇧C)"
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                      Cite
+                    </button>
+                    <button
+                      onClick={handleCompile}
+                      disabled={isCompiling || !texContent.trim()}
+                      className="flex items-center gap-1.5 rounded-md bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Compile (⌘Enter)"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      {isCompiling ? "Compiling..." : "Compile"}
+                    </button>
+                  </div>
+                </header>
+                <div className="flex-1 min-h-0 overflow-hidden p-2">
+                  {activeFile?.type === "file" ? (
+                    <CollaborativeEditor
+                      key={`${activeFile.id}-${isCollabEnabled}`}
+                      documentId={activeFile.id}
+                      initialContent={texContent}
+                      onChange={setTexContent}
+                      enableCollaboration={isCollabEnabled}
+                      className="h-full"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-foreground/50">
+                      <div className="text-center">
+                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <p>Select a file to edit</p>
+                        <p className="text-xs mt-1">
+                          or create a new file using the sidebar
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </header>
-              <div className="flex-1 p-2">
-                {activeFile?.type === "file" ? (
-                  <CollaborativeEditor
-                    key={`${activeFile.id}-${isCollabEnabled}`}
-                    documentId={activeFile.id}
-                    initialContent={texContent}
-                    onChange={setTexContent}
-                    enableCollaboration={isCollabEnabled}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-foreground/50">
-                    <div className="text-center">
-                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p>Select a file to edit</p>
-                      <p className="text-xs mt-1">
-                        or create a new file using the sidebar
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-          </Panel>
+              </section>
+            </Panel>
 
-          <Separator className="w-2 bg-background">
-            <div className="mx-auto h-full w-px bg-foreground/15" />
-          </Separator>
+            <Separator className="w-2 bg-background">
+              <div className="mx-auto h-full w-px bg-foreground/15" />
+            </Separator>
 
-          <Panel defaultSize={45} minSize={30} className="h-full">
-            <section className="flex h-full flex-col">
-              <header className="border-b border-foreground/10 px-4 py-2 text-sm font-medium">
-                PDF Preview
-              </header>
-              <div className="flex flex-1 flex-col">
-                {compileError && (
-                  <div className="m-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
-                    {compileError}
-                  </div>
-                )}
-                {pdfUrl ? (
-                  <iframe
-                    src={pdfUrl}
-                    className="h-full w-full"
-                    title="PDF Preview"
-                  />
-                ) : (
-                  <div className="flex flex-1 items-center justify-center p-6">
-                    <div className="w-full max-w-md rounded-md border border-foreground/10 p-4 text-center text-sm text-foreground/70">
-                      Preview will appear here after compilation.
+            <Panel defaultSize={45} minSize={30} className="h-full">
+              <section className="flex h-full flex-col">
+                <header className="border-b border-foreground/10 px-4 py-2 text-sm font-medium">
+                  PDF Preview
+                </header>
+                <div className="flex flex-1 flex-col">
+                  {compileError && (
+                    <div className="m-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
+                      {compileError}
                     </div>
-                  </div>
-                )}
-              </div>
-            </section>
-          </Panel>
-        </Group>
-      </div>
+                  )}
+                  {pdfUrl ? (
+                    <iframe
+                      src={pdfUrl}
+                      className="h-full w-full"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center p-6">
+                      <div className="w-full max-w-md rounded-md border border-foreground/10 p-4 text-center text-sm text-foreground/70">
+                        Preview will appear here after compilation.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </Panel>
+          </Group>
+        </div>
       </div>
 
       {/* Math Helper Modal */}
