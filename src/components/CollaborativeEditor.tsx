@@ -231,6 +231,12 @@ export function CollaborativeEditor({
         <div
             ref={editorRef}
             className={`h-full w-full overflow-hidden rounded-md border border-foreground/10 ${className}`}
+            style={{
+                height: '100%',
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column'
+            }}
         />
     );
 }
