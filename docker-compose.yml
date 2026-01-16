@@ -1,25 +1,18 @@
 services:
   myleaf:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: souptikmajumdar98/myleaf:latest
     container_name: myleaf
     ports:
-      - "3002:3002" # Next.js web app
-      - "1234:1234" # y-websocket collaboration
+      - "3002:3002"
+      - "1234:1234"
     volumes:
-      - myleaf-data:/app/data # SQLite database persistence
+      - myleaf-data:/app/data
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/myleaf.db
-      - NEXT_PUBLIC_SYNC_URL=ws://localhost:1234
       - ENABLE_COLLABORATION=true
-      # AI Features (optional)
-      # - AI_PROVIDER=openai
-      # - OPENAI_API_KEY=your-key-here
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/health" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3002/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
