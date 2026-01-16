@@ -22,7 +22,7 @@ services:
 networks:
   dokploy-network:
     external: true
-
+# Updated Dockerfile to use x86_64
 volumes:
   myleaf-data:
     driver: local
