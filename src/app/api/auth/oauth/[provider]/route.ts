@@ -29,10 +29,15 @@ export async function GET(
     const state = crypto.randomUUID();
 
     // Store state in cookie for verification
+    // Allow COOKIE_SECURE=false to disable secure cookies for HTTP (e.g., behind reverse proxy)
+    // const isSecure = process.env.COOKIE_SECURE === "false"
+    //   ? false
+    //   : process.env.NODE_ENV === "production";
+    const isSecure = false;
     const cookieStore = await cookies();
     cookieStore.set(`oauth_state_${provider}`, state, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: 600, // 10 minutes
     });
